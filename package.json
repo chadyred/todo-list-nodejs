@@ -1,0 +1,13 @@
+{
+	"name":"todo-list",
+	"version":"0.1.0",
+	"dependencies" : {
+		"express" : "~4.13.3",
+		"morgan" : "~1.6.1",
+		"ejs": "~2.3.4",
+		"cookie-session" : "~1.2.0",
+		"body-parser": "~1.14.0"
+	},	
+    "author": "chadyred <chadyred@gmail.com>",
+    "description": "Simple todo list"
+}
