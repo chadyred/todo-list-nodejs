@@ -7,7 +7,7 @@
 		"ejs": "~2.3.4",
 		"cookie-session" : "~1.2.0",
 		"body-parser": "~1.14.0",
-		"csv" : "0.4.6"
+		"express-csv" : "0.6.0"
 	},	
     "author": "chadyred <chadyred@gmail.com>",
     "description": "Simple todo list"

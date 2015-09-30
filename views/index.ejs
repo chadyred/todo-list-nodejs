@@ -17,6 +17,13 @@
 		<h1 class="text-center">Liste de tâches</h1>
 
 		<div>
+			<span class="btn-generate">
+				<!-- .csv est nécessaire pour le nom du fichier -->
+				<a href="/generate-csv.csv">
+					Générer
+				</a>
+			</span>
+			<hr/>
 			<form action="/task/new/" method="post">
 				<label for="task">Tâche: </label>
 				<input type="text" name="task" id="task" value="" pattern="^(.*)$" title=""/>

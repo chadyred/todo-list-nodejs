@@ -2,7 +2,7 @@ var express = require("express");
 var morgan = require("morgan");
 var cookieSession = require("cookie-session"); //Le middleware de session est à installer
 var bodyParser = require('body-parser');
-var csv = require("csv");
+var csv = require("express-csv");
 
 //Instanciation d'express
 var app = express();
@@ -131,6 +131,7 @@ app.use(morgan('combined'))
 		sessionUser.tasks[numero] = tacheSuivante;
 	}
 
+    
 	res.redirect('/');
 })
 .get('/task/:numero/moins/', function(req, res) {
@@ -155,7 +156,20 @@ app.use(morgan('combined'))
 
 	res.redirect('/');
 })
-.use(morgan(':id :method :url :response-time'))
+.get('/generate-csv\.csv', function(req, res) {
+	var sessionUser = req.session;
+	var tasks = sessionUser.tasks;
+
+	//Matrice qui contien l'ensemble des taches
+	var arrTasks = [ ['id', 'tasks'] ];
+	
+	for (var i = 0; i < tasks.length; i++) {
+		//On ajoute en valeur une ligne sous forme de tableau avec le numéro de la tâche
+		arrTasks.push([i + 1, tasks[i] ]);
+	};
+
+	res.csv(arrTasks);
+})
 .use(function (req, res, next) {
 	/*res.sendStatus(404).body("Page non trouvé <a href="\/">index</a>.");*/
 	 /*res.end('Page non trouvée vous allez être redirigé vers l\'index.');*/
