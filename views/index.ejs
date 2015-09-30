@@ -36,7 +36,11 @@
 						<li>
 							<!-- Pour le lien avec une boucle for, il faut faire un indexOf(tasks[i]) afin d'avoir le 
 							véritable index qui n'est pas le témoin i ! -->
-							<a href="/task/<%= index %>/delete/">X</a> <a href="/task/<%= index %>/edit/">✎</a>  <%= task %>
+							<a href="/task/<%= index %>/delete/">X</a> 
+							<a href="/task/<%= index %>/edit/">✎</a> 
+							<%= task %> 
+							<a href="/task/<%= index %>/moins/">-</a>
+							<a href="/task/<%= index %>/plus/">+</a>
 							<% 	
 								console.log(tasks[index])
 							%>

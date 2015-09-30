@@ -2,8 +2,13 @@ var express = require("express");
 var morgan = require("morgan");
 var cookieSession = require("cookie-session"); //Le middleware de session est à installer
 var bodyParser = require('body-parser');
+var csv = require("csv");
 
+//Instanciation d'express
 var app = express();
+
+//On récupère la fonction generator de CSV
+
 
 // create application/json parser 
 var jsonParser = bodyParser.json()
@@ -58,7 +63,7 @@ app.use(morgan('combined'))
 	var task = req.body.task;
 	var sessionUser = req.session;
 
-	console.log(task);
+	console.log("Ajout de " + task);
 
 	sessionUser.tasks.push(task);
 
@@ -112,6 +117,45 @@ app.use(morgan('combined'))
 
 	res.render('index.ejs', {tasks: tasks});	
 })
+.get('/task/:numero/plus/', function(req, res) {
+	var sessionUser = req.session;
+	var tasks = sessionUser.tasks;
+	var tacheSuivante = null;
+	var numero = parseInt(req.params.numero);
+
+	//On vérifie si une tâche suis cette tâche (les tâche commence à 0)
+	if(sessionUser.tasks[numero - 1]){
+		//On intervertie la tâche suivante avec celle dont on désire rémonter d'une place d'une place
+		tacheSuivante = sessionUser.tasks[numero - 1];
+		sessionUser.tasks[numero - 1] = sessionUser.tasks[numero];
+		sessionUser.tasks[numero] = tacheSuivante;
+	}
+
+	res.redirect('/');
+})
+.get('/task/:numero/moins/', function(req, res) {
+	var sessionUser = req.session;
+	var tasks = sessionUser.tasks;
+	var tachePrecedente = null;
+	var numero = parseInt(req.params.numero);
+
+	for (var i = 0; i < tasks.length; i++) {
+		console.log("Tache n°" + i + ":" + tasks[i]);
+	};
+	//On vérifie si une tâche suis cette tâche (les tâche commence à 0)
+	if(sessionUser.tasks[numero + 1]){
+		//On intervertie la tâche suivante avec celle dont on désire rémonter d'une place d'une place
+		tachePrecedente = sessionUser.tasks[numero + 1];
+		sessionUser.tasks[numero + 1] = sessionUser.tasks[numero];
+		sessionUser.tasks[numero] = tachePrecedente;
+	} 
+	else {
+		console.log("sessionUser.tasks[numero + 1] n'est pas valide n°" + (numero + 1));
+	}
+
+	res.redirect('/');
+})
+.use(morgan(':id :method :url :response-time'))
 .use(function (req, res, next) {
 	/*res.sendStatus(404).body("Page non trouvé <a href="\/">index</a>.");*/
 	 /*res.end('Page non trouvée vous allez être redirigé vers l\'index.');*/
@@ -119,4 +163,4 @@ app.use(morgan('combined'))
  	res.redirect('/');
 });
 
-app.listen(8080);
+app.listen(8081);
