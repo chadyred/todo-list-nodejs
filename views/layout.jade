@@ -1,0 +1,14 @@
+include header.jade
+
+block layout
+	body
+		block corps
+			section
+				h1 #{title}
+				p
+					Bienvenue dans #{title} ! 
+					Pour voir les tâche à faire cliquer 
+					a(href="/task/") ICI
+		
+
+include footer.jade

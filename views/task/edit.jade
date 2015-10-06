@@ -1,0 +1,19 @@
+extends index.jade
+
+block form
+	form(action="/task/#{task.id}/update/", method="post")
+		h2 Edition d'une tâches:
+
+		label(for="task") Tâche:
+		input(type="text" name="task" id="task" value="#{task.description}" pattern="^(.*)$" title="")
+
+		select(name="priorite")
+			each value, i in prioriteList
+				//- La structure if est un block en JavaScript qui prend directement les variables en JS
+				if task.priorite == value.id
+					option(value="#{value.id}", selected="selected") #{value.option}
+				else
+					option(value="#{value.id}") #{value.option}
+					
+		input(type="date" name="dateFin" value="#{moment(task.date_fin).format('YYYY-MM-DD')}")
+		input(type="submit" value="Envoyer")

@@ -1,0 +1,12 @@
+form(action="/task/new/", method="post")
+	h2 Création de tâches:
+
+	label(for="task") Tâche:
+	input(type="text" name="task" id="task" value="" pattern="^(.*)$" title="")
+
+	select(name="priorite")
+		each value, i in prioriteList
+			option(value="#{value.id}") #{value.option}
+				
+	input(type="date" name="dateFin")
+	input(type="submit" value="Envoyer")
