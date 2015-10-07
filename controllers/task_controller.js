@@ -13,11 +13,9 @@ var actions = {
 				//Test moment
 			 	// console.log(moment(new Date("2015-10-1")).from());
 
-			    console.log(__dirname);
-
 				// Chargement du model task. Il suffit d'appelé le fichier qui chargera l'objet littéral avec "module.exprts = objet"
 				//On les renge par ordre inverse (Z) Nb : A = Ordre normal
-				req.models.task.find({}).order("order_number", "Z").all( function (err, tasks) {
+				req.models.task.all( function (err, tasks) {
 					
 					if (err) {
 						return console.error("Chargement erreur task", err);
@@ -44,28 +42,33 @@ var actions = {
 			var dateFin = req.body.dateFin; //La date est au format YYYY-MM-DD
 
 			console.log("Ajout de " + task);
+
 			// Chargement du model task. Il suffit d'appelé le fichier qui chargera l'objet littéral avec "module.exprts = objet"
-			req.models.task.aggregate().max("order_number").get( function (err, max) {
+			req.models.task.aggregate().max("id").get( function (err, max) {
 
 				if(err) {
 					console.error("Erreur sur le numéro d'ordre", err);
 
 					return err;
 				}
-				else if (max == null){
-					//Max vaut null si aucune entré existe, on le place alors en haut de la pile en pôle position
-					max = 1;
-				}
-				else {
-					//Sinon on incrémente le max
-					max++;
-				}
 
-				req.models.task.create({ date_fin: dateFin, description: task, order_number: max,priorite_id: degreeNumber }, function(err) {
-		            if (err) 
+				req.models.task.create({ date_fin: dateFin, description: task, next_task_id: null,priorite_id: degreeNumber }, function(err, item) {
+		            if (err) {
 		            	throw err;
-		            else
-		            	console.log("Insertion réussi");
+		            }
+		            else if(max != null) {
+		            	req.models.task.get(max, function(err, Task){
+
+		            		console.log("Id du nouvel élément créé : " + item.id);
+		            		Task.next_task_id = item.id;
+
+		            		Task.save( function (err) {
+							    	if(err) console.error("Erreur de mise à jour de la tâche", err);
+
+							        console.log("saved!");
+					    	});
+		            	});
+		            }
 		        });	
 		    });		
 
@@ -75,14 +78,59 @@ var actions = {
 
 		//On récupère l'identifiant de la tâche au sein de l'URL
 		var idTache = req.params.id_tache;
+		var previousTask = null;
+		var nextTask = null;
 
-		req.models.task.find({ id: idTache }).remove(function (err) {
-		    // Does gone.. 
-		    if (err) 
-		    	console.error(err);
-		    else
-		    	console.log("Suppression réussit ! ");
-		});
+
+		req.models.task.get(idTache, function (err, Task) {
+
+			if(Task.next_task != null) {
+				nextTask = Task.next_task;
+			}
+
+			Task.hasPreviousTask(function (err, previousExist) {
+
+				if(previousExist) {
+
+					Task.getPreviousTask(function (err, previousTask) {
+
+						console.log("previousTask.id : " + previousTask);
+
+						if (err) {
+							console.error("Tâche précédente non trouvé", err);
+							return err;
+						}
+
+						if(previousTask != null && nextTask != null){
+							previousTask.next_task_id = nextTask.id;				
+						}
+						else if (previousTask != null && nextTask == null) {
+							previousTask.next_task_id = null;
+						}
+
+						previousTask.save(function (err) {
+							if (err) 
+								return err;
+							else
+								console.log("Tâche précédente saved ! ");
+						});
+					});
+				}
+				else {
+		    		console.log("Pas de tâche précédent la tâche !");
+		    	}
+			});
+
+
+			Task.remove(function (err) {
+			    // Does gone.. 
+			    if (err) 
+			    	console.error(err);
+			    else
+			    	console.log("Suppression réussit ! ");
+			});
+
+    	});
 
     	res.redirect('/task/');
 	},

@@ -3,8 +3,7 @@ module.exports = function (orm, db) {
     var Task = db.define("task", {
         id: Number,
         date_fin: String,
-        description: String,
-        order_number: Number
+        description: String
     });     
 
     /**Many TAsk to One priorite avec récupération de l'entité inverse ICI. Deux accesseur sont disponible pour l'entité inverse
@@ -19,5 +18,12 @@ module.exports = function (orm, db) {
 		    key       : false, // Turns the foreign keys in the join table into a composite key 
 		    autoFetch : true,
 	     	reverse: "tasks" 
+    });
+
+
+    Task.hasOne("next_task", Task, {
+            key       : false, // Turns the foreign keys in the join table into a composite key 
+            autoFetch : true,
+            reverse: "previousTask"
     });
 }
