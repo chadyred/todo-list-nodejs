@@ -7,7 +7,7 @@ var routes = function (app, prefix, urlParser) {
 	app.post(prefix + '/new/', controllers.task.new);
 	app.get(prefix + '/:id/edit/', controllers.task.edit);
 	app.post(prefix + '/:id/update/', controllers.task.update);
-	app.get(prefix + '/:id/plus/', controllers.task.plus);
+	app.post(prefix + '/:id/plus/', controllers.task.plus);
 	app.get(prefix + '/:id/moins/', controllers.task.moins);
 };
 

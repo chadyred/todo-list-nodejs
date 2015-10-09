@@ -21,7 +21,9 @@ block corps
 								Priorité:  #{task.priorite.option} - Description: #{task.description}
 
 							a(href="/task/#{task.id}/moins/") - 
-							a(href="/task/#{task.id}/plus/") + 
+							form(action="/task/#{task.id}/plus/", method="post")
+								input(type="submit" class="btn btn-primary" value="+")
+
 							//- On récupère le module qui est passé en paramêtre
 							span Date fin : #{moment(task.date_fin).format('DD MM YYYY')} soit #{moment(task.date_fin).from()}
 							//- console.log(#{tasks})

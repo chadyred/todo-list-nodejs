@@ -43,31 +43,33 @@ var actions = {
 
 			console.log("Ajout de " + task);
 
-			// Chargement du model task. Il suffit d'appelé le fichier qui chargera l'objet littéral avec "module.exprts = objet"
-			req.models.task.aggregate().max("id").get( function (err, max) {
+			// Chargement du model task. Il suffit d'appelé le fichier qui chargera l'objet littéral avec "module.exports = objet"
+			req.models.task.find({next_task_id: null}, function (err, taskWithoutNext) {
 
 				if(err) {
 					console.error("Erreur sur le numéro d'ordre", err);
 
 					return err;
 				}
+				console.log("taskWithoutNext" + taskWithoutNext);
 
-				req.models.task.create({ date_fin: dateFin, description: task, next_task_id: null,priorite_id: degreeNumber }, function(err, item) {
+				req.models.task.create({ date_fin: dateFin, description: task,priorite_id: degreeNumber }, function(err, item) {
+					//On ajoute en next_id le dernière élément entré
 		            if (err) {
 		            	throw err;
 		            }
-		            else if(max != null) {
-		            	req.models.task.get(max, function(err, Task){
+		            else if(typeof taskWithoutNext[0] != "undefined" && taskWithoutNext[0].id != item.id) {
 
-		            		console.log("Id du nouvel élément créé : " + item.id);
-		            		Task.next_task_id = item.id;
+	            		console.log("Id du nouvel élément créé : " + item.id);
+	            		console.log("Id de taskWithoutNext : " + taskWithoutNext[0].id);
 
-		            		Task.save( function (err) {
-							    	if(err) console.error("Erreur de mise à jour de la tâche", err);
+	            		taskWithoutNext[0].next_task = item;
 
-							        console.log("saved!");
-					    	});
-		            	});
+	            		taskWithoutNext[0].save( function (err) {
+						    	if(err) console.error("Erreur de mise à jour de la tâche", err);
+
+						        console.log("saved!");
+				    	});
 		            }
 		        });	
 		    });		
@@ -78,61 +80,90 @@ var actions = {
 
 		//On récupère l'identifiant de la tâche au sein de l'URL
 		var idTache = req.params.id_tache;
-		var previousTask = null;
+		var prevTask = null;
 		var nextTask = null;
 
+		console.log("Tâche id par url : " + idTache);
 
 		req.models.task.get(idTache, function (err, Task) {
 
-			if(Task.next_task != null) {
+			if(typeof Task.next_task !=  "undefined") {
 				nextTask = Task.next_task;
 			}
 
-			Task.hasPreviousTask(function (err, previousExist) {
+			//Retourne un tableau d'objet. A croire que le OneToOne n'héxiste pas...
+			//On récupère celuis qui nous cible. La tâche ici présente est en situation d'inverse
+			Task.getPreviousTask(function (err, prevTask) {
 
-				if(previousExist) {
+				if(prevTask[0])
+				{
+					console.log("prevTask.id : " + prevTask[0].id);
 
-					Task.getPreviousTask(function (err, previousTask) {
+					if (err) {
+						console.error("Tâche précédente (prevTask) non trouvé", err);
+						return err;
+					}
 
-						console.log("previousTask.id : " + previousTask);
 
-						if (err) {
-							console.error("Tâche précédente non trouvé", err);
+						if (err || typeof prevTask[0] === "undefined") {
+							console.error("Tâche précédente nn trouvée lors de la suppréssion", err);
+
 							return err;
 						}
 
-						if(previousTask != null && nextTask != null){
-							previousTask.next_task_id = nextTask.id;				
+						if(prevTask[0] != null && nextTask != null){
+							prevTask[0].next_task_id = nextTask.id;				
 						}
-						else if (previousTask != null && nextTask == null) {
-							previousTask.next_task_id = null;
+						else if (prevTask[0] != null && nextTask == null) {
+							prevTask[0].next_task_id = null;
 						}
 
-						previousTask.save(function (err) {
+						prevTask[0].save(function (err) {
 							if (err) 
 								return err;
 							else
-								console.log("Tâche précédente saved ! ");
-						});
-					});
+								console.log("Tâche précédente saved ! ");							
+						});			
+
+						//Je remove ici car l'ensemble des tâche précédente s'xécuteront si oui ou non une tâche existe.
+						Task.remove(function (err) {
+							    // Does gone.. 
+							    if (err) 
+							    	console.error(err);
+							    else{
+							    	console.log("Suppression réussit ! ");
+
+									//On redirige vers l'accueil une fois la suppression réalisé
+									res.redirect('/task/');	
+							    }
+
+						});			
+
 				}
 				else {
 		    		console.log("Pas de tâche précédent la tâche !");
+
+		    		//Je remove ici car l'ensemble des tâche précédente s'xécuteront si oui ou non une tâche existe.
+					Task.remove(function (err) {
+						    // Does gone.. 
+						    if (err) 
+						    	console.error(err);
+						    else{
+						    	console.log("Suppression réussit ! ");
+
+								//On redirige vers l'accueil une fois la suppression réalisé
+								res.redirect('/task/');	
+						    }
+
+					});
 		    	}
-			});
 
+		    	
 
-			Task.remove(function (err) {
-			    // Does gone.. 
-			    if (err) 
-			    	console.error(err);
-			    else
-			    	console.log("Suppression réussit ! ");
-			});
+			});			
 
     	});
 
-    	res.redirect('/task/');
 	},
 	edit : function (req, res) {
 		res.setHeader('Content-Type', 'text/html');
@@ -205,50 +236,130 @@ var actions = {
 			if (err){
 				 console.error('Plus error Task',err);
 				 return err;
+			} 
+
+			console.log("La tâche existe");
+
+			//Si on a bien une tâche suivante
+			if(Task.next_task_id)
+			{
+				req.models.task.get(Task.next_task_id, function (err, nextTask) {
+
+
+					if (err){
+						 console.error('Plus error Task suivante',err);
+						 return err;
+					}
+
+					//Une tâche suivante existe ? Sinon on ne fait rien !
+					if(typeof nextTask !== "undefined") {
+
+						var oldPreviousTaskId = null;
+
+						//Une tâche précédente? 
+						if(typeof Task.previousTask[0] != "undefined") {
+							oldPreviousTaskId = Task.previousTask[0].id;
+						} else {
+							console.log("Pas de tâche précédente !");
+						}
+
+
+						nextTask.next_task = Task;
+
+						//On récupère l'identifiant avant que celui-ci ne change via une fonction de callback 
+						if(oldPreviousTaskId != null) {
+							console.log('Une tâche précédente existe : oldPreviousTaskId = ' + oldPreviousTaskId);
+							 //Une tâche suivanteSuivante existe ?
+							req.models.task.get(oldPreviousTaskId, function (err, prevTask) {
+
+								if (err) {
+									console.error("Erreur de récupération de la prevTask", err);
+									return err;
+								}
+
+								//On affecte notre previous task en tant que previous du next. 
+								nextTask.previousTask[0] = prevTask;
+
+								prevTask.save( function (err){									
+									if (err) {
+										console.error("Erreur d'enregistrement prevTask", err);
+										return err;
+									} else {
+										console.log("Enregistrement réussis prevTask! " + prevTask.next_task.id)
+									}
+								});
+							});
+						}
+
+						//Une tâche suivanteSuivante existe ?
+						if(nextTask.next_task_id) {
+							req.models.task.get(nextTask.next_task_id, function (err, nextNextTask) {
+
+								if (err){
+									 console.error('Plus error Task suivanteSuivante',err);
+									 return err;
+								}
+
+								console.log("nextNextTask Existe !");
+								Task.next_task = nextNextTask;
+
+								
+								Task.save( function (err){
+									if (err) {
+										console.error("Erreur d'enregistrement Task", err);
+										return err;
+									} else {
+										console.log("Enregistrement réussis Task ! ");
+									}
+								});
+
+								nextTask.save( function (err){
+									if (err) {
+										console.error("Erreur d'enregistrement nextTask", err);
+										return err;
+									} else {
+										console.log("Enregistrement  nextTask réussis ! ");
+									}
+								});
+							});	
+						} else {
+							console.log("Pas de nextNext task !");
+
+							//On a pas de tâche après celle ci signifie que c'est la dernière de la pile
+							Task.next_task_id = null;
+							
+							//On sauvegarde l'état de la tâche tout de même
+							nextTask.save( function (err){
+									if (err) {
+										console.error("Erreur d'enregistrement nextTask", err);
+										return err;
+									} else {
+										console.log("Enregistrement réussis nextTask ! ");
+									}
+								});
+
+							Task.save( function (err){
+									if (err) {
+										console.error("Erreur d'enregistrement Task", err);
+										return err;
+									} else {
+										console.log("Enregistrement réussis Task ! ");
+									}
+								});
+						}				
+					}
+
+				});
+			} else {
+				console.log("Pas de tâche suivante, rien ne bouge ! ");
 			}
 
-			console.log("Tâche trouvé plus ! ");
+			res.redirect('/task/');	
 
-			var requete = "";
-
-			requete = "select *, MAX(order_number) As Max ";
-			requete += "from task ta ";
-			requete += "group by id, order_number ";
-			requete += "having MAX(order_number) = (select MAX(order_number) As Max ";
-			requete += "from task ta);";
-
-			req.db.driver.execQuery(requete, function (err, data) {
-
-				if(err) {
-					console.error("Plus - erreur de récup du max", err);
-
-					return err;
-				}
-				// On augment pas la position d'une tâche qui est déjà cellle au maximum. On a un tableau max qui comporte 
-				// max.order_number_max et max.id
-				else if(id == data[0].id){
-					console.log("C'est déjà le maximum !");
-
-					return true;
-				} 
-
-				console.log("data.length : " + data[0].order_number);
-				console.log("Avant augmentation : " + Task.order_number);
-
-				//On augmente ce nombre
-				Task.order_number = data[0].order_number + 1;
-
-				console.log("Changement plus fait ! Valeur nouvelle  :  " + Task.order_number);
-
-				//On enregistre ici car, la requête à pour de vérifier si on est pas déjà en présence du maximum
-				Task.save(function (err) {
-				    	if(err) console.error("Erreur de mise à jour de la tâche", err);
-				        console.log("saved!");
-		    	});
-			});
 		});
+
+				
 	    
-		res.redirect('/task/');
 	},
 	moins : function(req, res) {
 

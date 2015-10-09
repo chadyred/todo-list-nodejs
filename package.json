@@ -13,7 +13,7 @@
     "express-session": "~1.11.3",
     "moment": "2.10.6",
     "morgan": "~1.6.1",
-    "orm": "2.1.27",
+    "orm": "~2.1.1",
     "serve-favicon": "~2.3.0"
   },
   "author" : "chadyred chadyred@gmail.com",
