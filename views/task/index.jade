@@ -20,8 +20,10 @@ block corps
 							span.
 								Priorité:  #{task.priorite.option} - Description: #{task.description}
 
-							a(href="/task/#{task.id}/moins/") - 
-							form(action="/task/#{task.id}/plus/", method="post")
+							form(action="/task/#{task.id}/moins/", method="post", id="form-moins")
+								input(type="submit" class="btn btn-primary" value="-")
+
+							form(action="/task/#{task.id}/plus/", method="post", id="form-plus")
 								input(type="submit" class="btn btn-primary" value="+")
 
 							//- On récupère le module qui est passé en paramêtre

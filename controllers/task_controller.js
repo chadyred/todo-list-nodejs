@@ -1,5 +1,5 @@
 var moment = require("moment");
-var jade = require("jade");
+var async = require("async");
 
 //Les dates de l'application seront en français
 moment.locale("fr");
@@ -224,7 +224,7 @@ var actions = {
 		//On redirige vers l'accueil une fois la modification réaliser
 		res.redirect('/task/');	
 	},
-	plus : function (req, res) {
+	moins : function (req, res) {
 
 		var idTacheSuivante = null;
 		var id = parseInt(req.params.id);
@@ -238,7 +238,7 @@ var actions = {
 				 return err;
 			} 
 
-			console.log("La tâche existe");
+			console.log("La tâche existe Task.next_task_id et typeof Task.next_task_id" + Task.next_task_id + " : " + typeof Task.next_task_id);
 
 			//Si on a bien une tâche suivante
 			if(Task.next_task_id)
@@ -256,8 +256,8 @@ var actions = {
 
 						var oldPreviousTaskId = null;
 
-						//Une tâche précédente? 
-						if(typeof Task.previousTask[0] != "undefined") {
+						//Une tâche précédente? On vérifie si le tableau n'est pas null et si la tâche 0 existe 
+						if(Task.previousTask != null && typeof Task.previousTask !== "undefined" && Task.previousTask[0]) {
 							oldPreviousTaskId = Task.previousTask[0].id;
 						} else {
 							console.log("Pas de tâche précédente !");
@@ -266,7 +266,7 @@ var actions = {
 
 						nextTask.next_task = Task;
 
-						//On récupère l'identifiant avant que celui-ci ne change via une fonction de callback 
+						//On récupère l'identifiant avant que celui-ci ne change via une fonction de callback terminée
 						if(oldPreviousTaskId != null) {
 							console.log('Une tâche précédente existe : oldPreviousTaskId = ' + oldPreviousTaskId);
 							 //Une tâche suivanteSuivante existe ?
@@ -277,15 +277,15 @@ var actions = {
 									return err;
 								}
 
-								//On affecte notre previous task en tant que previous du next. 
-								nextTask.previousTask[0] = prevTask;
+								//On affecte notre nouvelle nextTask qui s'enregistre
+								prevTask.next_task = Task.next_task;
 
 								prevTask.save( function (err){									
 									if (err) {
 										console.error("Erreur d'enregistrement prevTask", err);
 										return err;
 									} else {
-										console.log("Enregistrement réussis prevTask! " + prevTask.next_task.id)
+										console.log("Enregistrement réussis prevTask! prevTask.next_task.id" + prevTask.next_task.id)
 									}
 								});
 							});
@@ -325,27 +325,34 @@ var actions = {
 						} else {
 							console.log("Pas de nextNext task !");
 
-							//On a pas de tâche après celle ci signifie que c'est la dernière de la pile
 							Task.next_task_id = null;
-							
-							//On sauvegarde l'état de la tâche tout de même
-							nextTask.save( function (err){
-									if (err) {
-										console.error("Erreur d'enregistrement nextTask", err);
-										return err;
-									} else {
-										console.log("Enregistrement réussis nextTask ! ");
-									}
-								});
 
-							Task.save( function (err){
-									if (err) {
-										console.error("Erreur d'enregistrement Task", err);
-										return err;
-									} else {
-										console.log("Enregistrement réussis Task ! ");
-									}
-								});
+							async.waterfall([
+							    function(next){ 
+									nextTask.save( function (err){
+											if (err) {
+												console.error("Erreur d'enregistrement nextTask", err);
+												return err;
+											} else {
+												console.log("Enregistrement réussis nextTask Pas de nextNex! ");
+											}
+										}); 
+										next();
+									},
+							    function(next){ 
+
+							    	Task.save( function (err){
+											if (err) {
+												console.error("Erreur d'enregistrement Task", err);
+												return err;
+											} else {
+												console.log("Enregistrement réussis Task ! Task.next_task_id Pas de nextNex: " + Task.next_task_id);
+
+											}
+										}); 
+							    		next();
+									},				    			
+							]);						
 						}				
 					}
 
@@ -361,9 +368,9 @@ var actions = {
 				
 	    
 	},
-	moins : function(req, res) {
+	plus : function(req, res) {
 
-		var tachePrecedente = null;
+		//TODO : à revoir au travers de schéma
 		var id = parseInt(req.params.id);
 
 		//On vérifie si une tâche suis cette tâche (les tâche commence à 0)
@@ -371,29 +378,135 @@ var actions = {
 		req.models.task.get(id, function (err, Task) {
 
 			if (err){
-				console.error('Moins error Task ',err)
-				return err;
+				 console.error('Plus error Task',err);
+				 return err;
+			} 
+
+			console.log("La tâche existe Task.previousTask et typeof Task.previousTask" + Task.previousTask[0] + " : " + typeof Task.previousTask[0]);
+
+			//Si on a bien une tâche suivante
+			if(Task.previousTask[0])
+			{
+				req.models.task.get(Task.previousTask[0].id, function (err, previousTask) {
+
+
+					if (err){
+						 console.error('Plus error Task précédente',err);
+						 return err;
+					}
+
+					//Une tâche suivante existe ? Sinon on ne fait rien !
+					if(typeof previousTask !== "undefined") {
+
+						var oldNextTaskId = null;
+
+						//Une tâche précédente? On vérifie si le tableau n'est pas null et si la tâche 0 existe 
+						if(Task.nextTask != null && typeof Task.nextTask !== "undefined" && Task.nextTask) {
+							oldPreviousTaskId = Task.nextTask.id;
+						} else {
+							console.log("Pas de tâche suivante !");
+						}
+
+
+						previousTask.previousTask = Task;
+
+						//On récupère l'identifiant avant que celui-ci ne change via une fonction de callback terminée
+						if(oldNextTaskId != null) {
+							console.log('Une tâche suivante existe : oldNextTaskId = ' + oldNextTaskId);
+							 //Une tâche suivanteSuivante existe ?
+							req.models.task.get(oldNextTaskId, function (err, nextTask) {
+
+								if (err) {
+									console.error("Erreur de récupération de la nextTask", err);
+									return err;
+								}
+
+								//On affecte notre nouvelle previousTask qui s'enregistre
+								nextTask.previousTask = Task.previousTask;
+
+								nextTask.save( function (err){									
+									if (err) {
+										console.error("Erreur d'enregistrement prevTask", err);
+										return err;
+									} else {
+										console.log("Enregistrement réussis prevTask! prevTask.previousTask[0].id" + nextTask.previousTask[0].id)
+									}
+								});
+							});
+						}
+
+						//Une tâche precedentePrecedente existe ?
+						if(previousTask.previousTask && typeof previousTask.previousTask[0] !== "undefined") {
+							req.models.task.get(previousTask.previousTask[0].id, function (err, prevPrevTask) {
+
+								if (err){
+									 console.error('Plus error Task prevPrevTask',err);
+									 return err;
+								}
+
+								console.log("prevPrevTask Existe !");
+								Task.previousTask[0] = prevPrevTask;
+
+								
+								Task.save( function (err){
+									if (err) {
+										console.error("Erreur d'enregistrement Task", err);
+										return err;
+									} else {
+										console.log("Enregistrement réussis Task ! ");
+									}
+								});
+
+								previousTask.save( function (err){
+									if (err) {
+										console.error("Erreur d'enregistrement nextTask", err);
+										return err;
+									} else {
+										console.log("Enregistrement  nextTask réussis ! ");
+									}
+								});
+							});	
+						} else {
+							console.log("Pas de previousPrevious task !");
+
+							Task.nextTask = null;
+							previousTask.nextTask = null;
+
+							async.waterfall([
+							    function(next){ 
+									previousTask.save( function (err){
+											if (err) {
+												console.error("Erreur d'enregistrement previousTask", err);
+												return err;
+											} else {
+												console.log("Enregistrement réussis previousTask Pas de nextNex! ");
+											}
+										}); 
+										next();
+									},
+							    function(next){ 
+
+							    	Task.save( function (err){
+											if (err) {
+												console.error("Erreur d'enregistrement Task", err);
+												return err;
+											} else {
+												console.log("Enregistrement réussis Task ! Task.previousTask Pas de previousPrevious: " + Task.previousTask);
+
+											}
+										}); 
+							    		next();
+									},				    			
+							]);						
+						}				
+					}
+
+				});
+			} else {
+				console.log("Pas de tâche précédente, rien ne bouge ! ");
 			}
 
 
-			console.log("Tâche trouvé moins ! ");
-
-			req.models.task.get(id + 1, function (err, previousTask) {
-
-				if (err){
-					console.error('Plus error Previous Task');
-					return err;
-				} 
-
-				//On intervertie la tâche précédente avec celle dont on désire descendre d'une place
-				tachePrecedente = previousTask;
-
-				previousTask.id = Task.id;
-				Task.id = tachePrecedente.id;
-
-				console.log("Changement moins fait ! ");
-
-			});
 		});
 
 		res.redirect('/task/');

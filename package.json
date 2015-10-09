@@ -6,16 +6,20 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "async": "1.4.2",
     "body-parser": "~1.14.1",
     "debug": "~2.2.0",
-    "jade": "~1.11.0",
     "express": "~4.13.1",
     "express-session": "~1.11.3",
+    "jade": "~1.11.0",
     "moment": "2.10.6",
     "morgan": "~1.6.1",
+    "node-uuid": "^1.4.3",
     "orm": "~2.1.1",
-    "serve-favicon": "~2.3.0"
+    "serve-favicon": "~2.3.0",
+    "node-uuid" : "1.4.3",
+    "pg" : "~4.4.2"
   },
-  "author" : "chadyred chadyred@gmail.com",
-  "description" : "Simple todo-list !"
+  "author": "chadyred chadyred@gmail.com",
+  "description": "Simple todo-list !"
 }

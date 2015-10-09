@@ -18,6 +18,9 @@ module.exports = function (cb) {
 
     connection = db;
     db.settings.set('instance.returnAllErrors', true);
+
+    //NE SURTOUT PAS METTRE DE CACHE SINON LES INSTANCE INVERSE RESTE MÊME SI ON MODIFIE LA PROPRIETAIRE
+    db.settings.set('instance.cache', false);
     setup(db, cb);
   });
 };

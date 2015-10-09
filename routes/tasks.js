@@ -8,7 +8,7 @@ var routes = function (app, prefix, urlParser) {
 	app.get(prefix + '/:id/edit/', controllers.task.edit);
 	app.post(prefix + '/:id/update/', controllers.task.update);
 	app.post(prefix + '/:id/plus/', controllers.task.plus);
-	app.get(prefix + '/:id/moins/', controllers.task.moins);
+	app.post(prefix + '/:id/moins/', controllers.task.moins);
 };
 
 module.exports = routes;

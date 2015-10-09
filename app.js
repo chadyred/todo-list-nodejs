@@ -2,10 +2,11 @@ var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
 var logger = require('morgan');
-var cookieParser = require('cookie-parser');
+var expressSession = require('express-session');
 var bodyParser = require('body-parser');
 var engine = require('jade'); //Permet d'inclure des template et définri du contenu au sein de block présent dans ce template
 var models   = require("./models");
+var uuid = require('node-uuid');
 
 var routes = require('./routes');
 var app = express();
@@ -19,7 +20,12 @@ app.set('view engine', 'jade');
 app.use(logger('dev'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
+app.use(expressSession({
+  genid: function(req) {
+    return uuid.v4() // use UUIDs for session IDs 
+  },
+  secret: 'keyboard cat'
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(function (req, res, next) {
       models(function (err, db) {
@@ -31,7 +37,6 @@ app.use(function (req, res, next) {
         return next();
       });
 });
-
 routes(app);
 // app.use('/tasks', tasks);
 

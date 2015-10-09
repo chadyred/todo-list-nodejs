@@ -6,3 +6,9 @@ body {
 a {
   color: #00B7FF;
 }
+
+
+#form-moins, #form-plus {
+	display: inline-block;
+	vertical-align: top;
+}
